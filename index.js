@@ -12,7 +12,6 @@ var stopsUrl = 'https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171
 var estimatedUrl = 'http://87.98.237.99:88/delays?stopId=';
 var helpText = "To get the following buses' arriving hours, just enter the name of the bus stop. !!!IMPORTANT!!! 1.This bot only works for Gdańsk Poland. 2.You have to start each word with a capital letter.";
  
-// Create simple echo bot
 login({email: "xyz", password: "xyz"}, (err, api) => {
     if(err) return console.error(err);
 
