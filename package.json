@@ -1,0 +1,27 @@
+{
+  "name": "projektmarcinekforgit",
+  "version": "1.0.0",
+  "description": "ZTM Gdansk bot for FB",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JJayJohnny/ZTM-Gdansk-FB-Bot.git"
+  },
+  "author": "Jan Barczewski",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JJayJohnny/ZTM-Gdansk-FB-Bot/issues"
+  },
+  "homepage": "https://github.com/JJayJohnny/ZTM-Gdansk-FB-Bot#readme",
+  "dependencies": {
+    "express": "^4.16.4",
+    "facebook-chat-api": "^1.6.1",
+    "file-system": "^2.2.2",
+    "node-jq": "^1.5.0",
+    "request": "^2.88.0"
+  }
+}
