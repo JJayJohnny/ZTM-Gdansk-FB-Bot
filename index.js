@@ -1,19 +1,91 @@
 'use strict'
-const login = require("facebook-chat-api");
+
+const express = require('express');
+const bodyParser = require('body-parser');
 const request = require('request');
 const fs = require('file-system');
 const jq = require('node-jq');
-const express = require('express');
 
 const app = express();
+
 app.set('port', (process.env.PORT || 5000));
+
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
+
+let token = "xyz";
 
 var stopsUrl = 'https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json';
 var estimatedUrl = 'http://87.98.237.99:88/delays?stopId=';
 var helpText = "To get the following buses' arriving hours, just enter the name of the bus stop. !!!IMPORTANT!!! 1.This bot only works for Gdańsk Poland. 2.You have to start each word with a capital letter.";
- 
-login({email: "xyz", password: "xyz"}, (err, api) => {
-    if(err) return console.error(err);
+var errorText = 'No buses aviable right now. Try again later'
+
+//routes
+
+app.get('/', function(req, res){
+    res.send("Hello world");
+});
+        
+app.get('/webhook/', function(req, res){
+    if(req.query['hub.verify_token']=="marcinek")
+    {
+        res.send(req.query['hub.challenge']);
+    }
+    else res.send("wrong token");
+});
+        
+app.post('/webhook/', function(req, res){
+    let messagingEvents = req.body.entry[0].messaging;
+    for(let i=0; i< messagingEvents.length; i++)
+    {
+        let event = messagingEvents[i];
+        let sender = event.sender.id;
+        if(event.message && event.message.text)
+        {
+            let text = event.message.text;
+            //sendText(sender, "Text echo: " + text);
+
+            if(text == "Help" || text == "help")
+            {
+                sendText(sender, helpText);
+            }
+            else
+            {
+                sendResponse(text, sender);  
+            }  
+        }
+    }
+    res.sendStatus(200);
+});
+
+function sendText(sender, text)
+{
+    return new Promise(function(resolve, reject){
+        let messageData = {text: text};
+        request({
+        url: "https://graph.facebook.com/v2.9/me/messages",
+        qs: {access_token: token},
+        method: "POST",
+        json:{
+            recipient: {id: sender},
+            message: messageData
+        }
+    }, function(error, response, body){
+        if(error){
+            console.log("error");
+            reject(error);
+        }else if(response.body.error){
+            console.log("response body error");
+            reject(error);
+        }
+        resolve("Ok");
+    }
+    );
+    })
+}
+
+
+        
 
 function findStopId(stopName)
 {
@@ -107,15 +179,6 @@ function download(url, path)
     })  
 }
 
-function sendText(text, sender)
-{
-    return new Promise(function(resolve, reject){
-        api.sendMessage(text, sender, function(err, messageInfo){
-            resolve(messageInfo);
-        });
-    })
-}
-
 async function sendResponse(txt, who){
     try{
         let data = new Array;
@@ -128,16 +191,16 @@ async function sendResponse(txt, who){
         for(var j=0; j<data.length; ++j)
         {
             await download(estimatedUrl+data[j], 'stop.json');
-            await sendText(names[j], who);
+            await sendText(who, names[j]);
             est = await findStopEstimated();
             if(est.length == 0)
             {
-                await sendText("No buses aviable right now. Or there is an error with ZTM api", who);
+                await sendText(who, errorText);
             }
             else{
             for(var k=0; k<est.length; k=k+3)
             {
-                await sendText(est[k]+" "+est[k+1]+" "+est[k+2], who);
+                await sendText(who, est[k]+" "+est[k+1]+" "+est[k+2]);
             }
             }
         }
@@ -146,31 +209,11 @@ async function sendResponse(txt, who){
         console.log(error);
     }
 }
- 
-api.listen((err, message) => {
-        //api.sendMessage(message.body, message.threadID);
-
-        let text = message.body;
-        if(text == "Help" || text == "help")
-        {
-            api.sendMessage(helpText, message.threadID);
-        }
-        else
-        {
-            sendResponse(text, message.threadID);  
-        }
-    });
-});
-
-app.get('/', function(req, res){
-    res.send("Hello world");
-});
-
 
 setInterval(function(){
 
     request
-    .get('https://projektmarcinekv2.herokuapp.com/')
+    .get('https://projektmarcinek.herokuapp.com/')
     .on('response', function(response){
         console.log(response.statusCode);
     });
@@ -180,3 +223,4 @@ setInterval(function(){
 app.listen(app.get('port'), function(){
     console.log("running: port "+app.get('port'));
 });
+
