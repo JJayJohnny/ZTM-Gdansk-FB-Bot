@@ -17,7 +17,8 @@ let token = "xyz";
 
 var stopsUrl = 'https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json';
 var estimatedUrl = 'http://87.98.237.99:88/delays?stopId=';
-var helpText = "To get the following buses' arriving hours, just enter the name of the bus stop. !!!IMPORTANT!!! 1.This bot only works for Gdańsk Poland. 2.You have to start each word with a capital letter.";
+var routesUrl = 'https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/22313c56-5acf-41c7-a5fd-dc5dc72b3851/download/routes.json';
+var helpText = "To get the following buses' arriving hours, just enter the name of the bus stop. !!!IMPORTANT!!! 1.This bot only works for Trojmiasto Poland.";
 var errorText = 'No buses aviable right now. Try again later'
 
 //routes
@@ -90,7 +91,7 @@ function sendText(sender, text)
 function findStopId(stopName)
 {
     return new Promise(function(resolve, reject){
-    var filter = '[.[].stops[] | select(.stopDesc | test("'+stopName+'")) | .stopId]';
+    var filter = '[.[].stops[] | select((.stopDesc | ascii_downcase) | test("'+stopName+'" | ascii_downcase)) | .stopId]';
     jq.run(filter, 'data.json', { output: 'json' })
     .then((output) => {
 
@@ -118,7 +119,7 @@ function findStopId(stopName)
 function findStopName(stopName)
 {
     return new Promise(function(resolve, reject){
-    var filter = '[.[].stops[] | select(.stopDesc | test("'+stopName+'")) | .stopDesc + " " + .stopCode]';
+    var filter = '[.[].stops[] | select((.stopDesc | ascii_downcase) | test("'+stopName+'" | ascii_downcase)) | .stopDesc + " " + .stopCode]';
     jq.run(filter, 'data.json', { output: 'json' })
     .then((output) => {
         let names = new Array;
@@ -147,12 +148,8 @@ function findStopEstimated()
         var filter = '[.[].delay[] | .routeId, .headsign, .estimatedTime]';
         jq.run(filter, 'stop.json', { slurp: true, output: 'json' })
         .then((output) => {
-                let finalData = new Array;
-                output.forEach(element => {
-                finalData.push(element);
-            });
             //console.log(finalData);
-            resolve(finalData);
+            resolve(output);
         })
         .catch((err) => {
             console.error(err);
@@ -160,6 +157,22 @@ function findStopEstimated()
         })
     })
         
+}
+
+function findBusNumber(busId)
+{
+    return new Promise(function(resolve, reject){
+        var filter = '[.[].routes[] | select(.routeId == '+busId+') | .routeShortName]';
+        jq.run(filter, 'routes.json', { output: 'json' })
+        .then((output) => {
+            //console.log(numbers[0]);
+            resolve(output[0]);
+        })
+        .catch((err) => {
+            console.error(err);
+            reject(err);
+        })
+    })
 }
 
 function download(url, path)
@@ -190,17 +203,25 @@ async function sendResponse(txt, who){
         console.log(names);
         for(var j=0; j<data.length; ++j)
         {
+            //sending stop title
             await download(estimatedUrl+data[j], 'stop.json');
-            await sendText(who, names[j]);
+            if(data.length == names.length)
+                await sendText(who, names[j]);
+            else
+                await sendText(who, names[0]+0+(j+1));
+
             est = await findStopEstimated();
             if(est.length == 0)
             {
+                //error message
                 await sendText(who, errorText);
             }
             else{
             for(var k=0; k<est.length; k=k+3)
             {
-                await sendText(who, est[k]+" "+est[k+1]+" "+est[k+2]);
+                //sending one course
+                let number = await findBusNumber(est[k]);
+                await sendText(who, number+" "+est[k+1]+" "+est[k+2]);
             }
             }
         }
@@ -219,6 +240,14 @@ setInterval(function(){
     });
 
 }, 300000);
+
+setInterval(function(){
+
+    download(stopsUrl, 'data.json');
+    download(routesUrl, 'routes.json');
+    console.log('UPDATE COMPLETED!!!');
+
+}, 604800000);
 
 app.listen(app.get('port'), function(){
     console.log("running: port "+app.get('port'));
