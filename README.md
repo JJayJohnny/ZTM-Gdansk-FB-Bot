@@ -1,5 +1,6 @@
 # ZTM-Gdansk-FB-Bot
 This bot acceses ZTM Gdansk api and displays the next buses for the given bus stop
+
 It works for the whole Trojmiasto
 
 # Facebook
