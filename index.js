@@ -55,6 +55,11 @@ app.post('/webhook/', function(req, res){
                 sendResponse(text, sender);  
             }  
         }
+        else if(event.postback)
+        {
+            let payload = event.postback.payload;
+            sendResponse(payload, sender);
+        }
     }
     res.sendStatus(200);
 });
@@ -63,6 +68,50 @@ function sendText(sender, text)
 {
     return new Promise(function(resolve, reject){
         let messageData = {text: text};
+        request({
+        url: "https://graph.facebook.com/v2.9/me/messages",
+        qs: {access_token: token},
+        method: "POST",
+        json:{
+            recipient: {id: sender},
+            message: messageData
+        }
+    }, function(error, response, body){
+        if(error){
+            console.log("error");
+            reject(error);
+        }else if(response.body.error){
+            console.log("response body error");
+            reject(error);
+        }
+        resolve("Ok");
+    }
+    );
+    })
+}
+
+function sendPostback(sender, lastStop)
+{
+    return new Promise(function(resolve, reject){
+        let messageData = {
+        "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Szybki dostęp",
+            "subtitle": "Nacisnij przycisk zamiast znow pisac",
+            "buttons": [
+              {
+                "type": "postback",
+                "title": lastStop,
+                "payload": lastStop,
+              }
+            ],
+          }]
+        }
+      }
+    };
         request({
         url: "https://graph.facebook.com/v2.9/me/messages",
         qs: {access_token: token},
@@ -203,7 +252,6 @@ async function sendResponse(txt, who){
         console.log(names);
         for(var j=0; j<data.length; ++j)
         {
-            //sending stop title
             await download(estimatedUrl+data[j], 'stop.json');
             if(data.length == names.length)
                 await sendText(who, names[j]);
@@ -213,18 +261,18 @@ async function sendResponse(txt, who){
             est = await findStopEstimated();
             if(est.length == 0)
             {
-                //error message
                 await sendText(who, errorText);
             }
             else{
             for(var k=0; k<est.length; k=k+3)
             {
-                //sending one course
                 let number = await findBusNumber(est[k]);
                 await sendText(who, number+" "+est[k+1]+" "+est[k+2]);
             }
             }
         }
+
+        await sendPostback(who, txt);
 
     }catch(error){
         console.log(error);
@@ -247,7 +295,7 @@ setInterval(function(){
     download(routesUrl, 'routes.json');
     console.log('UPDATE COMPLETED!!!');
 
-}, 604800000);
+}, 60480000);
 
 app.listen(app.get('port'), function(){
     console.log("running: port "+app.get('port'));
