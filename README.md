@@ -4,4 +4,4 @@ This bot acceses ZTM Gdansk api and displays the next buses for the given bus st
 It works for the whole Trojmiasto
 
 # Facebook
-[It can be found here](https://www.facebook.com/ProjektMarcinek-277517109529900/) - Facebook example
+[It can be found here](https://www.facebook.com/ProjektMarcinek-277517109529900/) - Facebook example (if it doestn't work, then Mark Zukerberg propably removed my permissions again.....)
