@@ -21,7 +21,7 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "file-system": "^2.2.2",
-    "node-jq": "^1.5.0",
+    "node-jq": "^2.3.5",
     "request": "^2.88.0"
   }
 }
